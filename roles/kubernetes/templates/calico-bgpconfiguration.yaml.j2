@@ -1,0 +1,19 @@
+apiVersion: projectcalico.org/v3
+kind: BGPConfiguration
+metadata:
+  name: default
+spec:
+  logSeverityScreen: Info
+  nodeToNodeMeshEnabled: true
+  asNumber: {{ kubernetes_global_bgp_asn }}
+
+{% for proxy in groups['kubernetesproxy'] %}
+---
+apiVersion: projectcalico.org/v3
+kind: BGPPeer
+metadata:
+  name: {{ hostvars[proxy]['inventory_hostname'] }}-peer
+spec:
+  peerIP: {{ hostvars[proxy]['ansible_host'] }}
+  asNumber: {{ kubernetes_global_bgp_asn }}
+{% endfor %}

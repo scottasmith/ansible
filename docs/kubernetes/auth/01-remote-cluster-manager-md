@@ -1,0 +1,61 @@
+= Creating a remote cluster administrator
+This is to ensure we can revoke it and still use the local admin one on the master node
+
+===Create private key
+The following scripts show how to generate PKI private key and CSR. It is important to set CN and O attribute of the CSR. CN is the name of the user and O is the group that this user will belong to. You can refer to RBAC for standard groups.
+
+Create private key and csr:
+```
+openssl genrsa -out ssmith.key 2048
+openssl req -new -key ssmith.key -out ssmith.csr -subj "/C=UK/ST=South Yorkshire/L=Doncaster/CN=ssmith@scottsmith.me.uk"
+```
+
+===Convert csr to base64:
+```
+cat ssmith.csr | base64 | tr -d "\n"
+```
+
+===Create CertificateSigningRequest:
+```
+cat <<EOF | kubectl apply -f -
+apiVersion: certificates.k8s.io/v1
+kind: CertificateSigningRequest
+metadata:
+  name: ssmith@scottsmith.me.uk
+spec:
+  request: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQ29qQ0NBWW9DQVFBd1hURUxNQWtHQTFVRUJoTUNWVXN4R0RBV0JnTlZCQWdNRDFOdmRYUm9JRmx2Y210egphR2x5WlRFU01CQUdBMVVFQnd3SlJHOXVZMkZ6ZEdWeU1TQXdIZ1lEVlFRRERCZHpjMjFwZEdoQWMyTnZkSFJ6CmJXbDBhQzV0WlM1MWF6Q0NBU0l3RFFZSktvWklodmNOQVFFQkJRQURnZ0VQQURDQ0FRb0NnZ0VCQU1CdGNGS1gKMzB1cXFoRko3dHN3cDdvWHRYajZTM1FmK2VwemlXMU1VVjUyTUoramNlbUJkaFJ0aHk4ZEF2TlBNcmJ5QnNzeApySThzVCtkRDFWM2U4Z2xYbThySTJxenRpd1B2a3ZIc1F0QTNQWHlMdFAzRzU2VjEyMUZGRUhFa1RjRTNKTG5QCnNhV01LMVkvOHZrYUNhRGo3cjVNa25RN3BUMDBPZlk3NFFFRVNYZ0RYZmJUVURjVVZGdlZzV25ubU43clpLRnkKMDBqMi9abUJBNlhUUFhFTzQ1d3YyRXI1ekVGVktTZWF5cmRha2ZwN0s2N3lVSHBreU9FYXVkZ0VVN0p0K29EQwoybnFGMTBSdUJPV1Z1SmhobUk0OERJQ08zTVl2d0xYVERnRHlMcDdXQ2xVOXVpNlFBTUhwMlV5RDllaWJoZUtxCkk4TmpuMjlGamRrNUJxTUNBd0VBQWFBQU1BMEdDU3FHU0liM0RRRUJDd1VBQTRJQkFRQm4rUHQxZjRQczgxeGEKYUREVHovTDRuY2lCM0Q2d0tMQmJId0NuUHRCb0RWTERwRnRDSWFXVUtTelQwK0hOWlM1azd1OHRrakZwM2dmeQpDSWpYNkNpazRZT1BDVjV3Z3dKS2F0eVVBQVp6TXZiZW01engxL1ZzV2JQcmRYSGN1ODRxdkFRR0h1MGRjWTgyCi9EUzQrZmgrblIxUjR3MThKVlZCenVaZTdhd0pFTVhnLzRqMlB0cW92ZmtJU0VsYXdNRndOUy82VjgxdlZHQXIKUXh6WGxZUCtibUtJdk9VTmJJMWt4MEZWaTBvQVpTc0ZPM21mU1ZHRXd0ZWNFK1lKek1nT2paMHFiMGVnbUlJdgp3eHRNZU9zYnk1UlJGQnB0eDBVclZUTEx4c0sxb1VYa1UrYmxRa1hWbXlCK0ttZjVENnpjY1NxYituNDNBZ0RTCjBEZXFkM2h5Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=
+  signerName: kubernetes.io/kube-apiserver-client
+  usages:
+  - client auth
+EOF
+```
+
+Some points to note:
+- `usages` has to be 'client auth'
+- `request` is the base64 encoded value of the CSR file content. You can get the content using this command: cat john.csr | base64 | tr -d "\n"
+
+=Approve certificate signing request
+Use kubectl to create a CSR and approve it.
+
+Get the list of CSRs:
+```
+kubectl get csr
+```
+
+Approve the CSR:
+```
+kubectl certificate approve ssmith@scottsmith.me.uk
+```
+
+=Get the certificate
+Retrieve the certificate from the CSR:
+```
+kubectl get csr/ssmith@scottsmith.me.uk -o yaml
+or
+kubectl get csr/ssmith@scottsmith.me.uk -o jsonpath={.status.certificate} | base64 -d
+```
+
+
+kubectl create clusterrolebinding cluster-remote-admin \
+    --clusterrole=cluster-admin \
+    --user ssmith@scottsmith.me.uk

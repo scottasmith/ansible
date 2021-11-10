@@ -1,0 +1,6 @@
+- name: install cert-manager
+  become: false
+  ansible.builtin.shell: kubectl create -f https://github.com/jetstack/cert-manager/releases/download/v1.5.3/cert-manager.yaml >> cert-manager.log
+  args:
+    chdir: "/home/{{ ansible_user }}"
+    creates: cert-manager.log

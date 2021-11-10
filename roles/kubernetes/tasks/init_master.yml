@@ -1,0 +1,84 @@
+---
+- name: Install kubernetes for master
+  ansible.builtin.apt:
+    pkg:
+    - kubeadm=1.22.3-00
+    state: present
+  tags: ['packages']
+  
+- name: Create kubernetes config
+  ansible.builtin.template:
+    src: kubeadm-init.yml.j2
+    dest: /tmp/kubeadm-init.yml
+
+- name: Test if kubernetes is up and running
+  ansible.builtin.shell: kubectl cluster-info
+  changed_when: False
+  register: k8_cluster_info_output
+  failed_when: k8_cluster_info_output.rc not in [ 0, 1 ]
+
+- name: Initialize kubernetes master
+  ansible.builtin.shell: kubeadm init --config /tmp/kubeadm-init.yml  >> cluster_init.log
+  args:
+    chdir: "/home/{{ ansible_user }}"
+  when: k8_cluster_info_output.rc != 0
+
+- name: Update kubelet systemd to use /run/systemd/resolve/resolve.conf
+  ansible.builtin.lineinfile:
+    path: /etc/systemd/system/multi-user.target.wants/kubelet.service
+    regexp: '^ExecStart=/usr/bin/kubelet$'
+    line: ExecStart=/usr/bin/kubelet --resolv-conf /run/systemd/resolve/resolve.conf
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+- name: Enable kubelet service
+  ansible.builtin.service:
+    name: kubelet
+    daemon_reload: yes
+    enabled: true
+
+- name: Setup user's .kube directory
+  ansible.builtin.file:
+    path: "/home/{{ ansible_user }}/.kube"
+    state: directory
+    mode: '0755'
+
+- name: Copy admin.conf to the user's kube directory
+  ansible.builtin.copy:
+    src: /etc/kubernetes/admin.conf
+    dest: "/home/{{ ansible_user }}/.kube/config"
+    remote_src: yes
+
+- name: Secure k8 user's admin configuration
+  ansible.builtin.file:
+    path: "/home/{{ ansible_user }}/.kube/config"
+    owner: "{{ ansible_user }}"
+    group: root
+    mode: '0700'
+
+- name: Setup .kube directory
+  ansible.builtin.file:
+    path: "/root/.kube"
+    state: directory
+    mode: '0755'
+
+- name: Copy admin.conf to the root kube directory
+  ansible.builtin.copy:
+    src: /etc/kubernetes/admin.conf
+    dest: "/root/.kube/config"
+    remote_src: yes
+
+- name: Secure k8 roots admin configuration
+  ansible.builtin.file:
+    path: "/root/.kube/config"
+    owner: root
+    group: root
+    mode: '0700'
+
+- name: Get kubeconfig
+  ansible.builtin.shell: cat /etc/kubernetes/admin.conf
+  register: kubernetes_config_raw
+  changed_when: false
+
+- name: set k8 join command as fact
+  ansible.builtin.set_fact:
+    kubernetes_config: "{{ kubernetes_config_raw.stdout }}"

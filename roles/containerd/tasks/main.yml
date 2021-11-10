@@ -1,0 +1,63 @@
+---
+- name: Install dependencies
+  ansible.builtin.apt:
+    pkg:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg2
+      - software-properties-common
+    state: present
+    update_cache: yes
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+  tags: ['packages']
+
+- name: Add apt docker keyring
+  ansible.builtin.shell: curl https://download.docker.com/linux/debian/gpg | gpg --dearmor > /usr/share/keyrings/docker.gpg
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+  tags: ['packages']
+
+- name: Add apt docker repository
+  ansible.builtin.shell: >
+    echo "deb [signed-by=/usr/share/keyrings/docker.gpg]
+    https://download.docker.com/linux/debian $(lsb_release -cs) stable"
+    > /etc/apt/sources.list.d/docker.list
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+  args:
+    creates: /etc/apt/sources.list.d/docker.list
+  tags: ['packages']
+
+- name: Check containerd already installed with lock file
+  ansible.builtin.stat:
+    path: /etc/containerd
+  register: containerd_installed_file
+
+- name: Install containerd
+  ansible.builtin.apt:
+    name: containerd.io
+    state: present
+    update_cache: yes
+  tags: ['packages']
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+- name: Bind crictl to containerd
+  lineinfile:
+    path: /etc/crictl.yaml
+    line: 'runtime-endpoint: unix:///run/containerd/containerd.sock'
+    create: true
+
+- name: Create containerd etc dir
+  file:
+    path: /etc/containerd
+    state: directory
+
+- name: Add systemd cgroup to containerd config
+  copy:
+    src: containerd-config.toml
+    dest: /etc/containerd/config.toml
+
+- name: Restart containerd if first time
+  service:
+    name: containerd
+    state: restarted
+  when: containerd_installed_file.stat.exists == false

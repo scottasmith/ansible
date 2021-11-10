@@ -1,0 +1,25 @@
+---
+- name: Wait for master's port 6443
+  ansible.builtin.wait_for:
+    host: "{{ kubernetes_primary_master_ipv4_address }}"
+    port: 6443
+    timeout: 1
+
+- name: Join the cluster. use log to prevent joining twice
+  ansible.builtin.shell: "kubeadm join {{ kubernetes_primary_master_ipv4_address }}:{{ kubernetes_master_port }} --token {{ kubernetes_master_token }} --discovery-token-unsafe-skip-ca-verification >> node_join.log"
+  args:
+    chdir: "/home/{{ ansible_user }}"
+    creates: node_join.log
+
+- name: Update kubelet systemd to use /run/systemd/resolve/resolve.conf
+  ansible.builtin.lineinfile:
+    path: /etc/systemd/system/multi-user.target.wants/kubelet.service
+    regexp: '^ExecStart=/usr/bin/kubelet$'
+    line: ExecStart=/usr/bin/kubelet --resolv-conf /run/systemd/resolve/resolve.conf
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+- name: Enable kubelet service
+  ansible.builtin.service:
+    name: kubelet
+    daemon_reload: yes
+    enabled: true

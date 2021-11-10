@@ -1,0 +1,9 @@
+---
+- name: Add each server into hosts from inventory
+  lineinfile:
+    dest: /etc/hosts
+    regexp: ".*{{ item }}$"
+    line: "{{ hostvars[item].ansible_host }} {{ item }}"
+    state: present
+  when: hostvars[item].ansible_host is defined
+  with_items: "{{ groups['all'] }}"

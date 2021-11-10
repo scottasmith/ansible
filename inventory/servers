@@ -1,0 +1,16 @@
+[all:vars]
+ansible_python_interpreter=/usr/bin/python3
+ansible_ssh_private_key_file = /home/ansible/.ansible/ansible-id_rsa
+ansible_user = ansible
+
+[control]
+ansible ansible_connection=local
+
+[kubernetesproxy]
+proxy-1 ansible_host=192.168.2.10
+proxy-2 ansible_host=192.168.2.11
+
+[kubernetescluster]
+k8-master-1 ansible_host=192.168.2.20
+k8-worker-1 ansible_host=192.168.2.21
+k8-worker-2 ansible_host=192.168.2.22

@@ -1,0 +1,10 @@
+---
+- hosts: k8-master-1
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: initialise fluxci
+      include_role:
+        name: kubernetes
+        tasks_from: init_flux

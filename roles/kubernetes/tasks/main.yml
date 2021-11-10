@@ -1,0 +1,67 @@
+---
+- name: Include dependencies
+  include: dependencies_apt.yml
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu' and inventory_hostname not in kubernetes_proxies
+
+- name: Add rbd module to config
+  lineinfile:
+    path: /etc/modules-load.d/rbd.conf
+    regexp: '^rbd$'
+    line: rbd
+    create: yes
+
+- name: Setup modprobe rbd module
+  command: modprobe rbd
+  changed_when: false
+
+- name: Disable swap since kubernetes can't work with swap enabled
+  ansible.builtin.shell: |
+    swapoff -a
+  changed_when: false
+
+- name: Disable swap in fstab since kubernetes can't work with swap enabled
+  ansible.builtin.replace:
+    path: /etc/fstab
+    regexp: '^(\s*)([^#\n]+\s+)(\w+\s+)swap(\s+.*)$'
+    replace: '#\1\2\3swap\4'
+
+# - name: Disable selinux
+#   ansible.posix.selinux:
+#     state: disabled
+#   when: ansible_selinux is defined and ansible_selinux != False and ansible_selinux.status == 'enabled'
+
+- name: Add network bridge filter module to config
+  ansible.builtin.lineinfile:
+    path: /etc/modules-load.d/net-bridge-filter.conf
+    regexp: '^br_netfilter$'
+    line: br_netfilter
+    create: yes
+
+- name: Setup modprobe network bridge
+  ansible.builtin.command: modprobe br_netfilter
+  changed_when: false
+
+- name: Add network bridge sysctl
+  ansible.builtin.lineinfile:
+    path: /etc/sysctl.d/99-net-bridge-nf.conf
+    regexp: '^net.bridge.bridge-nf-call-iptables = 1$'
+    line: net.bridge.bridge-nf-call-iptables = 1
+    create: yes
+
+- name: Add ipv4 forward sysctl
+  ansible.builtin.lineinfile:
+    path: /etc/sysctl.d/99-bridge-nf.conf
+    regexp: '^net.ipv4.ip_forward = 1$'
+    line: net.ipv4.ip_forward = 1
+    create: yes
+
+- name: Run sysctl
+  ansible.builtin.command: sysctl --system
+  changed_when: false
+
+# - name: Install python packages
+#   pip:
+#     name:
+#     - openshift
+#     - kubernetes-validate
+#   tags: ['packages-pip']

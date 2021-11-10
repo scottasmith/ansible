@@ -1,0 +1,12 @@
+kubernetes_master: k8-master-1
+kubernetes_master_port: 6443
+kubernetes_proxies: ["proxy-1"]
+
+kubernetes_pod_subnet: 172.16.0.0/16
+kubernetes_master_token: ag2sdf.01g5fc442246gd5f
+
+kubernetes_primary_master_ipv4_address: 192.168.2.20
+kubernetes_global_bgp_peer: 192.168.2.10
+kubernetes_global_bgp_asn: 65000
+
+kubernetes_csr_resources: ["scottsmith.me.uk/*"]

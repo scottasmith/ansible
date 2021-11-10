@@ -1,0 +1,85 @@
+---
+- name: Install dependencies
+  ansible.builtin.package:
+    name:
+    - curl
+    - gpg
+    - bird
+    state: present
+  tags: ['packages']
+
+- name: Download haproxy trusted keyring
+  ansible.builtin.shell: curl https://haproxy.debian.net/bernat.debian.org.gpg | gpg --dearmor > /usr/share/keyrings/haproxy.debian.net.gpg
+  args:
+    creates: /usr/share/keyrings/haproxy.debian.net.gpg
+  tags: ['packages']
+
+- name: Add haproxy source to apt
+  ansible.builtin.shell: >
+    echo deb "[signed-by=/usr/share/keyrings/haproxy.debian.net.gpg]"
+    http://haproxy.debian.net $(lsb_release -cs)-backports-2.4 main
+    > /etc/apt/sources.list.d/haproxy.list
+  args:
+    creates: /etc/apt/sources.list.d/haproxy.list
+  tags: ['packages']
+
+- name: Installing haproxy
+  ansible.builtin.apt:
+    name:
+    - haproxy=2.4.*
+    state: present
+    update_cache: yes
+  tags: ['packages']
+
+- name: Disable haproxy
+  ansible.builtin.service:
+    name: haproxy
+    state: stopped
+    enabled: no
+
+- name: Enable haproxy to bind to ports 80 and 443
+  ansible.builtin.shell: setcap cap_net_bind_service=+ep /usr/sbin/haproxy
+
+- name: Install kubernetes ingress controller
+  ansible.builtin.shell: >
+      wget https://github.com/haproxytech/kubernetes-ingress/releases/download/v1.6.7/haproxy-ingress-controller_1.6.7_Linux_x86_64.tar.gz 1> /dev/null 2> /dev/null &&
+      mkdir ingress-controller &&
+      tar -xzvf haproxy-ingress-controller_1.6.7_Linux_x86_64.tar.gz -C ./ingress-controller &&
+      cp ./ingress-controller/haproxy-ingress-controller /usr/local/bin && 
+      rm -rf ./ingress-controller haproxy-ingress-controller_1.6.7_Linux_x86_64.tar.gz
+  args:
+    creates: /usr/local/bin/haproxy-ingress-controller
+
+- name: Create kube config directory
+  ansible.builtin.file:
+    path: /root/.kube
+    state: directory
+
+- name: Copy kubeconfig
+  copy:
+    content: "{{ hostvars['k8-master-1'].kubernetes_config }}"
+    dest: /root/.kube/config
+    owner: root
+    group: root
+
+- name: Add haproxy ingress service
+  ansible.builtin.copy:
+    src: haproxy-ingress.service
+    dest: /lib/systemd/system/haproxy-ingress.service
+
+- name: Enable haproxy ingress service
+  ansible.builtin.service:
+    name: haproxy-ingress
+    state: started
+    enabled: yes
+
+- name: Create bird config
+  ansible.builtin.template:
+    src: bird.cfg.j2
+    dest: "/etc/bird/bird.conf"
+
+- name: Enable and start bird
+  ansible.builtin.service:
+    name: bird
+    state: started
+    enabled: yes

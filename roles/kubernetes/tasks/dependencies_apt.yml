@@ -1,0 +1,36 @@
+---
+- name: Install apt packages
+  ansible.builtin.apt:
+    pkg:
+    - apt-transport-https
+    - ca-certificates
+    - curl
+    - gnupg2
+    - software-properties-common
+    - python3-pip
+    - lvm2
+    state: present
+  tags: ['packages']
+
+- name: Add apt kubernetes keyring
+  ansible.builtin.shell: curl  https://packages.cloud.google.com/apt/doc/apt-key.gpg > /usr/share/keyrings/google-packages.gpg
+  args:
+    creates: /usr/share/keyrings/google-packages.gpg
+  tags: ['packages']
+
+- name: Add apt kubernetes repository
+  ansible.builtin.shell: >
+      echo "deb [signed-by=/usr/share/keyrings/google-packages.gpg]
+      https://apt.kubernetes.io/ kubernetes-xenial main"
+      > /etc/apt/sources.list.d/kubernetes.list
+  args:
+    creates: /etc/apt/sources.list.d/kubernetes.list
+  tags: ['packages']
+
+- name: Install kubernetes kubelet and kubeadm
+  ansible.builtin.apt:
+    pkg:
+    - kubelet=1.22.3-00
+    - kubeadm=1.22.3-00
+    state: present
+  tags: ['packages']

@@ -1,0 +1,3 @@
+#!/bin/bash
+
+docker run -ti -v $HOME/.ssh/known_hosts:/etc/ssh/ssh_known_hosts:ro -v $HOME/.ansible:/home/ansible/.ansible -v $(pwd):/ansible scottsmith/ansible:2.4 "$@"
