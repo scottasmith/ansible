@@ -1,7 +1,10 @@
 ---
-- hosts: kubernetes
+- hosts: k8-master-1
   become: true
-  gather_facts: true
+  gather_facts: false
 
-  roles:
-  - hostfile
+  tasks:
+    - name: initialise kadalu
+      include_role:
+        name: kubernetes
+        tasks_from: init_kadalu

@@ -59,9 +59,9 @@
   ansible.builtin.command: sysctl --system
   changed_when: false
 
-# - name: Install python packages
-#   pip:
-#     name:
-#     - openshift
-#     - kubernetes-validate
-#   tags: ['packages-pip']
+- name: Install python packages
+  pip:
+    name:
+    - openshift
+    - kubernetes-validate
+  tags: ['packages-pip']

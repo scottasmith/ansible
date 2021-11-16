@@ -1,11 +1,12 @@
 ---
 - name: Install dependencies
-  ansible.builtin.package:
-    name:
-    - curl
-    - gpg
-    - bird
+  ansible.builtin.apt:
+    pkg:
+      - curl
+      - gnupg2
+      - bird
     state: present
+    update_cache: true
   tags: ['packages']
 
 - name: Download haproxy trusted keyring
@@ -26,7 +27,7 @@
 - name: Installing haproxy
   ansible.builtin.apt:
     name:
-    - haproxy=2.4.*
+      - haproxy=2.4.*
     state: present
     update_cache: yes
   tags: ['packages']
@@ -36,9 +37,20 @@
     name: haproxy
     state: stopped
     enabled: no
+  
+- name: Remove haproxy init.d file
+  ansible.builtin.file: 
+    path: /etc/init.d/haproxy
+    state: absent
+
+- name: Get haproxy binary cap
+  ansible.builtin.shell: getcap /usr/sbin/haproxy | grep cap_net_bind_service=ep >/dev/null; echo $?
+  register: kubernetes_config_raw
+  changed_when: false
 
 - name: Enable haproxy to bind to ports 80 and 443
   ansible.builtin.shell: setcap cap_net_bind_service=+ep /usr/sbin/haproxy
+  when: kubernetes_config_raw.stdout == "1"
 
 - name: Install kubernetes ingress controller
   ansible.builtin.shell: >
@@ -70,7 +82,7 @@
 - name: Enable haproxy ingress service
   ansible.builtin.service:
     name: haproxy-ingress
-    state: started
+    state: restarted
     enabled: yes
 
 - name: Create bird config

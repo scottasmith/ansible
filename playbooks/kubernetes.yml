@@ -50,7 +50,7 @@
         name: kubernetes
         tasks_from: init_workers
 
-- hosts: k8-master-1,proxy-*
+- hosts: k8-master-1,kubernetesproxy
   become: true
   gather_facts: true
 
@@ -86,3 +86,10 @@
       include_role:
         name: kubernetes
         tasks_from: init_flux
+
+- hosts: k8-master-1,kubernetesproxy
+  become: true
+  gather_facts: true
+
+  roles:      
+    - keepalived

@@ -13,7 +13,7 @@ log syslog all;
 
 {% for item in groups['kubernetescluster'] %}
 # {{ hostvars[item]['inventory_hostname'] }}
-protocol bgp-{{ hostvars[item]['inventory_hostname'] }} {
+protocol bgp {{ hostvars[item]['inventory_hostname']|replace("k8-", "")|replace("-", "") }} {
 	local {{ ansible_host }} as {{ kubernetes_global_bgp_asn }};
 	neighbor {{ hostvars[item]['ansible_host'] }} as {{ kubernetes_global_bgp_asn }};
 	direct;
@@ -41,3 +41,4 @@ protocol kernel {
 protocol device {
 	scan time 60;
 }
+

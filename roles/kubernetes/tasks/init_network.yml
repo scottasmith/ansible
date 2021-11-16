@@ -43,7 +43,9 @@
 
 - name: Configure calico for bgp peering
   ansible.builtin.shell: "calicoctl apply -f /home/{{ ansible_user }}/calico-bgpconfiguration.yaml"
+  changed_when: false
 
 # Probably should find a better home for this :)
 - name: Create configmap for ingresscontroller
   ansible.builtin.shell: kubectl create configmap haproxy-kubernetes-ingress --dry-run=client  -o yaml | kubectl apply -f -
+  changed_when: false

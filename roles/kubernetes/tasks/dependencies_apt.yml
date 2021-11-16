@@ -2,14 +2,15 @@
 - name: Install apt packages
   ansible.builtin.apt:
     pkg:
-    - apt-transport-https
-    - ca-certificates
-    - curl
-    - gnupg2
-    - software-properties-common
-    - python3-pip
-    - lvm2
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg2
+      - software-properties-common
+      - python3-pip
+      - lvm2
     state: present
+    update_cache: true
   tags: ['packages']
 
 - name: Add apt kubernetes keyring
@@ -17,6 +18,7 @@
   args:
     creates: /usr/share/keyrings/google-packages.gpg
   tags: ['packages']
+  changed_when: false
 
 - name: Add apt kubernetes repository
   ansible.builtin.shell: >
@@ -30,7 +32,8 @@
 - name: Install kubernetes kubelet and kubeadm
   ansible.builtin.apt:
     pkg:
-    - kubelet=1.22.3-00
-    - kubeadm=1.22.3-00
+      - kubelet=1.22.3-00
+      - kubeadm=1.22.3-00
     state: present
+    update_cache: true
   tags: ['packages']

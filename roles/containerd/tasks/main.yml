@@ -16,6 +16,8 @@
   ansible.builtin.shell: curl https://download.docker.com/linux/debian/gpg | gpg --dearmor > /usr/share/keyrings/docker.gpg
   when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
   tags: ['packages']
+  args:
+    creates: /usr/share/keyrings/docker.gpg
 
 - name: Add apt docker repository
   ansible.builtin.shell: >
