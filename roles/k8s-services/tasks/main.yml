@@ -1,0 +1,8 @@
+# - name: Setup certificate manager
+#   ansible.builtin.include: setup-cert-manager.yml
+
+# - name: Setup certificate signing for client
+#   ansible.builtin.include: setup-certificate-signing.yml
+
+- name: Setup kadalu
+  ansible.builtin.include: setup-kadalu.yml

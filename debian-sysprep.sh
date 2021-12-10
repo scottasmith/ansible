@@ -3,6 +3,7 @@
 ansible_ssh_private_key_file=~/.ansible/ansible-id_rsa
 remote_user=ssmith
 remote_user_sshkey=~/.ssh/id_rsa
+requires_sudo_password=1
 
 server=$1
 
@@ -11,7 +12,11 @@ if [ "x$server" = "x" ]; then
     exit;
 fi
 
-printf "Installing dependencies.."
+if [[ "x$2" == "x0" || "x$2" == "x1" ]]; then
+    requires_sudo_password=$2
+fi
+
+printf "Installing client dependencies.."
 sudo apt install sshpass
 printf "\n\n"
 
@@ -20,30 +25,41 @@ stty -echo
 read ansible_password
 printf "\n"
 
-printf "Please provide Remote sudo password: "
-stty -echo
-read remote_password
-printf "\n"
+if [ $requires_sudo_password == 1 ]; then
+    printf "Please provide Remote sudo password: "
+    stty -echo
+    read remote_password
+    printf "\n"
+fi
 
 function _ssh {
     ssh -tt "$remote_user@$1" "$2"
 }
 
 function _sudo_ssh {
-    _ssh $1 "echo $remote_password | sudo -S $2"
+    if [ $requires_sudo_password == 1 ]; then
+        _ssh $1 "echo $remote_password | sudo -S $2"
+    else
+        _ssh $1 "sudo -S $2"
+    fi
 }
 
-printf "Starting on server $server\n"
-printf "Installing dependencies..\n"
+printf "ssh-keyscan on server $server\n"
 
 # ensure it has remote_user_sshkey
-ssh-keyscan -H $server >> ~/.ssh/known_hosts > /dev/null 2>&1
+ssh-keyscan -H "${server}" >> "${HOME}/.ssh/known_hosts" 2> /dev/null
+
+printf "ssh-copy-id on server $server\n"
 
 # ssh-copy-id
-echo $remote_password | sshpass ssh-copy-id -i $remote_user_sshkey "$remote_user@$server" > /dev/null 2>&1
+if [ $requires_sudo_password == 1 ]; then
+    echo "${remote_password}" | sshpass ssh-copy-id -i "${remote_user_sshkey}" "$remote_user@$server" > /dev/null 2>&1
+else 
+    ssh-copy-id -i "${remote_user_sshkey}" "$remote_user@$server" > /dev/null 2>&1
+fi
 
 SCRIPT="
-apt install -y vim;
+apt install -y --no-install-recommends vim python3 python3-pip;
 
 have_ansible_user=\$(grep ansible /etc/passwd);
 

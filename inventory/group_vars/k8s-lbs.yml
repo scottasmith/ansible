@@ -1,0 +1,11 @@
+---
+vrrp_interface: ens18
+vrrp_virtual_router_id: 52
+
+kubernetes_ingress_vip: "192.168.2.10"
+
+check_cluster_health_http_request: /cluster-healthz
+
+haproxy_version: "2.4.*"
+haproxy_ingress_install_url: "https://github.com/haproxytech/kubernetes-ingress/releases/download/v1.6.7/haproxy-ingress-controller_1.6.7_Linux_x86_64.tar.gz"
+haproxy_ingress_zip_file: "haproxy-ingress-controller_1.6.7_Linux_x86_64.tar.gz"

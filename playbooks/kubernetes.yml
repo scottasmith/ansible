@@ -1,95 +1,50 @@
 ---
-- hosts: kubernetescluster:kubernetesproxy
-  become: true
-  gather_facts: false
-
-  roles:
-    - hostfile
-
-- hosts: kubernetescluster
+- hosts: all
   become: true
   gather_facts: true
-
-  tasks:
-    - name: Update apt cache
-      ansible.builtin.apt:
-        update_cache: yes
-
   roles:
-    - containerd
-    - kubernetes
+  - hostfile
 
+# Initialise the whole cluster (lb's including so we can utilise BGP/etc.)
+- hosts: k8s_cluster
+  become: true
+  gather_facts: true
+  roles:
+  - containerd
+  - k8s-requirements
+
+# Initial setup of the cluster if not already set up.
 - hosts: k8-master-1
   become: true
   gather_facts: true
+  roles:
+  - k8s-control-plane
 
-  tasks:
-    - name: Initialise Kubernetes master
-      include_role:
-        name: kubernetes
-        tasks_from: init_master
-
-    - name: Initialise Kubernetes network
-      include_role:
-        name: kubernetes
-        tasks_from: init_network
-
-    # This should be in the GitOps repo
-    # - name: Setup Kubernetes certificate signer
-    #   include_role:
-    #     name: kubernetes
-    #     tasks_from: init_certificate_signing
-
-- hosts: k8-worker-*
+# Setup rest of the masters
+- hosts: k8s_masters:!k8-master-1
   become: true
   gather_facts: true
+  roles:
+  - k8s-control-plane
 
-  tasks:
-    - name: Initialise Kubernetes workers
-      include_role:
-        name: kubernetes
-        tasks_from: init_workers
-
-- hosts: k8-master-1,kubernetesproxy
+# Setup normal worker nodes 
+- hosts: k8s_workers
   become: true
   gather_facts: true
+  roles:
+  - k8s-workers
 
-  tasks:
-    - name: Get Kubernetes config
-      ansible.builtin.shell: cat /etc/kubernetes/admin.conf
-      register: kubernetes_config_raw
-      changed_when: false
-      when: inventory_hostname == 'k8-master-1'
+# Setup loadbalancers
+- hosts: k8s_lbs
+  become: true
+  gather_facts: true
+  roles:
+  - k8s-loadbalancers
 
-    - name: Set Kubernetes join command as fact
-      ansible.builtin.set_fact:
-        kubernetes_config: "{{ kubernetes_config_raw.stdout }}"
-      when: inventory_hostname == 'k8-master-1'
-
-    - name: initialise proxy server
-      include_role:
-        name: kubernetes
-        tasks_from: init_proxy
-      when: inventory_hostname != 'k8-master-1'
-
+# Setup loadbalancers and services
 - hosts: k8-master-1
   become: true
-  gather_facts: false
-
-  tasks:
-    - name: initialise kadalu
-      include_role:
-        name: kubernetes
-        tasks_from: init_kadalu
-
-    - name: initialise fluxci
-      include_role:
-        name: kubernetes
-        tasks_from: init_flux
-
-- hosts: k8-master-1,kubernetesproxy
-  become: true
   gather_facts: true
-
-  roles:      
-    - keepalived
+  roles:
+  - k8s-network
+  - k8s-services

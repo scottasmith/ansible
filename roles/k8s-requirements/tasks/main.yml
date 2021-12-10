@@ -41,22 +41,18 @@
     - gnupg2
     - software-properties-common
     - python3-pip
-    - "kubelet={{ kubernetes_version }}"
-    - "kubeadm={{ kubernetes_version }}"
-    - "kubectl={{ kubernetes_version }}"
+    - "kubelet={{ kubernetes_pkg_version }}"
+    - "kubeadm={{ kubernetes_pkg_version }}"
     state: present
     update_cache: true
-  tags: ['packages']
 
 - name: Install python packages
   pip:
     name:
     - openshift
     - kubernetes-validate
-  tags: ['packages-pip']
 
-- name: Enable and start kubelet service
+- name: Enable kubelet service
   ansible.builtin.service:
     name: kubelet
-    state: started
     enabled: true

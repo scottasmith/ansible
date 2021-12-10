@@ -1,0 +1,46 @@
+---
+# TODO: Move apt install into setup-requirements.yaml
+- name: Install keepalived
+  ansible.builtin.apt:
+    pkg:
+    - keepalived
+    - netcat
+    state: present
+    update_cache: true
+
+- name: Ensure group "keepalived_script" exists
+  ansible.builtin.group:
+    name: keepalived_script
+    state: present
+
+- name: Ensure user 'keepalived_script' exists
+  ansible.builtin.user:
+    name: keepalived_script
+    groups: keepalived_script
+  
+- name: Create keepalived config
+  ansible.builtin.template:
+    src: keepalived.conf.j2
+    dest: /etc/keepalived/keepalived.conf
+
+- name: Create keepalived apiserver check script
+  ansible.builtin.template:
+    src: check-apiserver.sh.j2
+    dest: /etc/keepalived/check-apiserver.sh
+    owner: keepalived_script
+    group: keepalived_script
+    mode: '0755'
+
+- name: Create keepalived notify
+  ansible.builtin.copy:
+    src: notify.sh
+    dest: /etc/keepalived/notify.sh
+    owner: keepalived_script
+    group: keepalived_script
+    mode: '0755'
+
+- name: Restart keepalived
+  ansible.builtin.service:
+    name: keepalived
+    state: restarted
+    enabled: yes

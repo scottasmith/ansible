@@ -1,10 +1,11 @@
----
-- hosts: k8-master-1
+- hosts: k8s_cluster:k8-master-1
   become: true
-  gather_facts: false
+  gather_facts: true
 
   tasks:
-    - name: initialise kadalu
-      include_role:
-        name: kubernetes
-        tasks_from: init_kadalu
+    - name: Insert a line at the end of /var/lib/kubelet/config.yaml
+      lineinfile:
+        path: /var/lib/kubelet/config.yaml
+        line: 'serverTLSBootstrap: true'
+    - name: restart kubelet
+      shell: systemctl restart kubelet

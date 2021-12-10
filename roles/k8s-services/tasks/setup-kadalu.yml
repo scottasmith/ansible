@@ -1,0 +1,33 @@
+---
+# https://kadalu.io/docs/k8s-storage/latest/quick-start-yaml/
+
+- name: add kadalu operator
+  command: kubectl apply -f https://github.com/kadalu/kadalu/releases/latest/download/kadalu-operator.yaml
+  changed_when: false
+
+- name: add kadalu csi node plugin
+  command: kubectl apply -f https://github.com/kadalu/kadalu/releases/download/0.8.6/csi-nodeplugin.yaml
+  changed_when: false
+
+- name: install kadalu binary
+  ansible.builtin.shell: >
+    curl -LO https://github.com/kadalu/kadalu/releases/latest/download/kubectl-kadalu 1> /dev/null 2> /dev/null &&
+    chmod +x ./kubectl-kadalu &&
+    mv ./kubectl-kadalu /usr/local/bin/kubectl-kadalu
+  args:
+    creates: /usr/local/bin/kubectl-kadalu
+
+- name: install python packages
+  pip:
+    name:
+    - openshift
+    - kubernetes-validate
+  tags: ['packages-pip']
+
+- name: create storage pool 1
+  community.kubernetes.k8s:
+    state: present
+    apply: yes
+    definition: "{{ lookup('template', 'kadalu/pool-1.yml.j2') | from_yaml }}"
+    validate:
+      fail_on_error: no

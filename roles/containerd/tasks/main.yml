@@ -1,20 +1,72 @@
 ---
+- name: Check containerd already installed
+  ansible.builtin.stat:
+    path: /etc/containerd/.install-lock
+  register: containerd_install_lock
+
+- name: Add network bridge filter module to config
+  ansible.builtin.lineinfile:
+    path: /etc/modules-load.d/net-bridge-filter.conf
+    regexp: '^br_netfilter$'
+    line: br_netfilter
+    create: yes
+
+- name: Add overlay filter module to config
+  ansible.builtin.lineinfile:
+    path: /etc/modules-load.d/overlay.conf
+    regexp: '^overlay$'
+    line: overlay
+    create: yes
+
+- name: Setup modprobe network bridge
+  ansible.builtin.command: modprobe br_netfilter
+  changed_when: false
+
+- name: Setup modprobe overlay
+  ansible.builtin.command: modprobe overlay
+  changed_when: false
+
+- name: Add ipv4 bridge netfilter sysctl
+  ansible.builtin.lineinfile:
+    path: /etc/sysctl.d/99-net-bridge-nf.conf
+    regexp: '^net.bridge.bridge-nf-call-iptables = 1$'
+    line: net.bridge.bridge-nf-call-iptables = 1
+    create: yes
+
+- name: Add ipv6 bridge netfilter sysctl
+  ansible.builtin.lineinfile:
+    path: /etc/sysctl.d/99-net-bridge-nf.conf
+    regexp: '^net.bridge.bridge-nf-call-ip6tables = 1$'
+    line: net.bridge.bridge-nf-call-ip6tables = 1
+    create: yes
+
+- name: Add ipv4 forward sysctl
+  ansible.builtin.lineinfile:
+    path: /etc/sysctl.d/99-ipv4-forward.conf
+    regexp: '^net.ipv4.ip_forward = 1$'
+    line: net.ipv4.ip_forward = 1
+    create: yes
+
+- name: Run sysctl
+  ansible.builtin.command: sysctl --system
+  changed_when: false
+
 - name: Install dependencies
   ansible.builtin.apt:
     pkg:
-      - apt-transport-https
-      - ca-certificates
-      - curl
-      - gnupg2
-      - software-properties-common
+    - apt-transport-https
+    - ca-certificates
+    - curl
+    - gnupg2
+    - software-properties-common
     state: present
     update_cache: yes
-  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+  when: containerd_install_lock.stat.exists == false and (ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu')
   tags: ['packages']
 
 - name: Add apt docker keyring
   ansible.builtin.shell: curl https://download.docker.com/linux/debian/gpg | gpg --dearmor > /usr/share/keyrings/docker.gpg
-  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+  when: containerd_install_lock.stat.exists == false and (ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu')
   tags: ['packages']
   args:
     creates: /usr/share/keyrings/docker.gpg
@@ -24,15 +76,9 @@
     echo "deb [signed-by=/usr/share/keyrings/docker.gpg]
     https://download.docker.com/linux/debian $(lsb_release -cs) stable"
     > /etc/apt/sources.list.d/docker.list
-  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+  when: containerd_install_lock.stat.exists == false and (ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu')
   args:
     creates: /etc/apt/sources.list.d/docker.list
-  tags: ['packages']
-
-- name: Check containerd already installed with lock file
-  ansible.builtin.stat:
-    path: /etc/containerd
-  register: containerd_installed_file
 
 - name: Install containerd
   ansible.builtin.apt:
@@ -40,7 +86,7 @@
     state: present
     update_cache: yes
   tags: ['packages']
-  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+  when: containerd_install_lock.stat.exists == false and (ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu')
 
 - name: Bind crictl to containerd
   lineinfile:
@@ -62,4 +108,10 @@
   service:
     name: containerd
     state: restarted
-  when: containerd_installed_file.stat.exists == false
+  when: containerd_install_lock.stat.exists == false
+
+- name: Touch the install lock file if not already there
+  ansible.builtin.file:
+    path: /etc/containerd/.install-lock
+    state: touch
+    mode: u=rw,g=r,o=r

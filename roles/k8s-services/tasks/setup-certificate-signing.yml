@@ -1,0 +1,24 @@
+---
+- name: Apply csr creator cluster role
+  community.kubernetes.k8s:
+    state: present
+    definition: "{{ lookup('template', 'csr/creator.yml.j2') | from_yaml }}"
+    validate:
+      fail_on_error: no
+      strict: yes
+
+- name: Apply csr approver cluster role
+  community.kubernetes.k8s:
+    state: present
+    definition: "{{ lookup('template', 'csr/approver.yml.j2') | from_yaml }}"
+    validate:
+      fail_on_error: no
+      strict: yes
+
+- name: Apply csr signer cluster role
+  community.kubernetes.k8s:
+    state: present
+    definition: "{{ lookup('template', 'csr/signer.yml.j2') | from_yaml }}"
+    validate:
+      fail_on_error: no
+      strict: yes

@@ -1,0 +1,49 @@
+---
+- name: Create kubernetes config
+  ansible.builtin.template:
+    src: kubeadm-init.yml.j2
+    dest: /tmp/kubeadm-init.yml
+
+- name: Initialize kubernetes master
+  ansible.builtin.shell: kubeadm init --config /tmp/kubeadm-init.yml  >> cluster_init.log
+  args:
+    chdir: "/home/{{ ansible_user }}"
+
+- name: Setup ansible .kube directory
+  ansible.builtin.file:
+    path: "/home/{{ ansible_user }}/.kube"
+    state: directory
+    mode: '0755'
+
+- name: Copy admin.conf to the user's kube directory
+  ansible.builtin.copy:
+    src: /etc/kubernetes/admin.conf
+    dest: "/home/{{ ansible_user }}/.kube/config"
+    remote_src: yes
+
+- name: Secure k8 user's admin configuration
+  ansible.builtin.file:
+    path: "/home/{{ ansible_user }}/.kube/config"
+    owner: "{{ ansible_user }}"
+    group: root
+    mode: '0700'
+
+- name: Setup .kube directory
+  ansible.builtin.file:
+    path: "/root/.kube"
+    state: directory
+    mode: '0755'
+
+- name: Copy admin.conf to roots kube directory
+  ansible.builtin.copy:
+    src: /etc/kubernetes/admin.conf
+    dest: "/root/.kube/config"
+    remote_src: yes
+
+- name: Secure k8 roots configuration
+  ansible.builtin.file:
+    path: "/root/.kube/config"
+    owner: "{{ ansible_user }}"
+    group: root
+    mode: '0700'
+

@@ -1,0 +1,3 @@
+#!/bin/sh
+
+echo -e "GET {{ check_cluster_health_http_request }} HTTP/1.0\nHost: 127.0.0.1\n" | netcat 127.1 80

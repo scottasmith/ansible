@@ -1,0 +1,27 @@
+---
+- name: Generate join token
+  ansible.builtin.shell: kubeadm token create --print-join-command
+  register: kubeadm_join_cmd_raw
+  delegate_to: "{{ groups['k8s_masters'][0] }}"
+
+- name: set k8 join command as fact
+  ansible.builtin.set_fact:
+    kubeadm_join_cmd: "{{ kubeadm_join_cmd_raw.stdout }}"
+  when: kubeadm_join_cmd is not defined
+
+- name: Show join command
+  ansible.builtin.debug:
+    msg: "{{ kubeadm_join_cmd }}"
+
+- name: Execute join command
+  ansible.builtin.shell: "{{ kubeadm_join_cmd }}"
+
+- name: Taint node so no worker pods are deployed
+  ansible.builtin.shell: kubectl taint nodes {{ inventory_hostname }} role=haproxy-ingress:NoSchedule
+  delegate_to: "{{ groups['k8s_masters'][0] }}"
+
+- name: Setup keepalived
+  ansible.builtin.include: setup-keepalived.yml
+
+- name: Setup haproxy
+  ansible.builtin.include: setup-haproxy.yml

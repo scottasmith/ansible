@@ -1,0 +1,98 @@
+---
+- name: Installing haproxy and dependencies
+  ansible.builtin.apt:
+    name:
+      - curl
+      - gnupg2
+    state: present
+    update_cache: yes
+
+- name: Download haproxy trusted keyring
+  ansible.builtin.shell: curl https://haproxy.debian.net/bernat.debian.org.gpg | gpg --dearmor > /usr/share/keyrings/haproxy.debian.net.gpg
+  args:
+    creates: /usr/share/keyrings/haproxy.debian.net.gpg
+
+- name: Add haproxy source to apt
+  ansible.builtin.shell: >
+    echo deb "[signed-by=/usr/share/keyrings/haproxy.debian.net.gpg]"
+    http://haproxy.debian.net $(lsb_release -cs)-backports-2.4 main
+    > /etc/apt/sources.list.d/haproxy.list
+  args:
+    creates: /etc/apt/sources.list.d/haproxy.list
+
+- name: Installing haproxy and dependencies
+  ansible.builtin.apt:
+    name:
+      - haproxy={{ haproxy_version}}
+    state: present
+    update_cache: yes
+
+- name: Disable haproxy
+  ansible.builtin.service:
+    name: haproxy
+    state: stopped
+    enabled: no
+  
+# Ughh, why does this old thing get installed!
+- name: Remove haproxy init.d file
+  ansible.builtin.file: 
+    path: /etc/init.d/haproxy
+    state: absent
+
+- name: Get haproxy binary cap
+  ansible.builtin.shell: getcap /usr/sbin/haproxy | grep cap_net_bind_service=ep >/dev/null; echo $?
+  register: kubernetes_config_raw
+  changed_when: false
+
+- name: Enable haproxy to bind to ports 80 and 443
+  ansible.builtin.shell: setcap cap_net_bind_service=+ep /usr/sbin/haproxy
+  when: kubernetes_config_raw.stdout == "1"
+
+- name: Install kubernetes ingress controller
+  ansible.builtin.shell: >
+      curl -LO {{ haproxy_ingress_install_url }} 1> /dev/null 2> /dev/null &&
+      mkdir -p ingress-controller &&
+      tar -xzvf {{ haproxy_ingress_zip_file }} -C ./ingress-controller &&
+      cp ./ingress-controller/haproxy-ingress-controller /usr/local/bin && 
+      rm -rf ./ingress-controller {{ haproxy_ingress_zip_file }}
+  args:
+    creates: /usr/local/bin/haproxy-ingress-controller
+
+- name: Create kube config directory
+  ansible.builtin.file:
+    path: /root/.kube
+    state: directory
+
+- name: Get kubectl config file from first master
+  ansible.builtin.shell: cat /etc/kubernetes/admin.conf
+  register: config_raw
+  delegate_to: "{{ groups['k8s_masters'][0] }}"
+  run_once: true
+
+- name: Copy kubeconfig
+  copy:
+    content: "{{ config_raw.stdout }}"
+    dest: /root/.kube/config
+    owner: root
+    group: root
+
+- name: Create source haproxy.cfg
+  ansible.builtin.copy:
+    src: haproxy.cfg
+    dest: /etc/haproxy-template.cfg
+
+- name: Add haproxy ingress service
+  ansible.builtin.copy:
+    src: haproxy-ingress.service
+    dest: /lib/systemd/system/haproxy-ingress.service
+
+- name: Enable haproxy ingress service
+  ansible.builtin.service:
+    name: haproxy-ingress
+    state: restarted
+    enabled: yes
+
+# Probably should find a better home for this :)
+- name: Create configmap for ingresscontroller
+  ansible.builtin.shell: kubectl create configmap haproxy-kubernetes-ingress --dry-run=client  -o yaml | kubectl apply -f -
+  changed_when: false

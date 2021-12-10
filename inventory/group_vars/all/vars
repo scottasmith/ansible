@@ -1,5 +1,8 @@
-letsencrypt_email: smitherz82@gmail.com
+###########################
+#### DELETE ME????
+###########################
 
-cloudflare_email: smitherz82@gmail.com
 
-cluster_health_http_request: /my-cluster-healthz
+#letsencrypt_email: smitherz82@gmail.com
+
+#cloudflare_email: smitherz82@gmail.com

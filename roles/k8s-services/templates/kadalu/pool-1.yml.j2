@@ -1,0 +1,16 @@
+{% for pool in kadalu_pools %}
+---
+apiVersion: kadalu-operator.storage/v1alpha1
+kind: KadaluStorage
+metadata:
+  namespace: kadalu
+  name: {{ pool['name'] }}
+spec:
+  volume_id: {{ pool['volume_id'] }}
+  type: {{ pool['type'] }}
+  storage:
+{% for worker in groups['k8s_workers'] %}
+  - node: {{ hostvars[worker]['inventory_hostname'] }}
+    device: {{ hostvars[worker]['kadalu_' ~ pool['name'] ~ '_device'] }}
+{% endfor %}
+{% endfor %}

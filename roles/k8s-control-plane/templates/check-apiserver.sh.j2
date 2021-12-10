@@ -1,0 +1,17 @@
+#!/bin/sh
+
+KUBERNETES_API_VIP="{{ kubernetes_api_vip }}"
+KUBERNETES_API_PORT="{{ kubernetes_api_port }}"
+
+KUBERNETES_LOCAL_URL="https://localhost:${KUBERNETES_API_PORT}/"
+KUBERNETES_VIP_URL="https://${KUBERNETES_API_VIP}:${KUBERNETES_API_PORT}/"
+
+errorExit() {
+    echo "*** $*" 1>&2
+    exit 1
+}
+
+curl --silent --max-time 2 --insecure $KUBERNETES_LOCAL_URL -o /dev/null || errorExit "Error GET ${KUBERNETES_LOCAL_URL}"
+if ip addr | grep -q $KUBERNETES_API_VIP; then
+    curl --silent --max-time 2 --insecure $KUBERNETES_VIP_URL -o /dev/null || errorExit "Error GET ${KUBERNETES_VIP_URL}"
+fi

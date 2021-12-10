@@ -1,0 +1,32 @@
+---
+- name: Install kubectl on control-plane
+  ansible.builtin.apt:
+    pkg: "kubectl={{ kubernetes_pkg_version }}"
+    state: present
+    update_cache: true
+
+- name: Setup keepalived
+  ansible.builtin.include: setup-keepalived.yml
+
+- name: Setup haproxy
+  ansible.builtin.include: setup-haproxy.yml
+
+- name: Check for localhost kube apiserver
+  ansible.builtin.shell:  curl --silent --max-time 2 --insecure "https://localhost:{{ kubernetes_api_port }}" -o /dev/null
+  changed_when: false
+  register: k8_check_localhost_apiserver
+  failed_when: false
+
+- name: Check for vip kube apiserver
+  ansible.builtin.shell:  curl --silent --max-time 2 --insecure "https://{{ kubernetes_api_vip }}:{{ kubernetes_api_vip_port }}" -o /dev/null
+  changed_when: false
+  register: k8_check_vip_apiserver
+  failed_when: false
+
+- name: Cluster initialise
+  ansible.builtin.include: cluster-initialise.yml
+  when: k8_check_vip_apiserver.rc != 0 and k8_check_localhost_apiserver.rc != 0
+
+- name: Cluster join
+  ansible.builtin.include: cluster-join.yml
+ when: k8_check_vip_apiserver.rc != 0 and k8_check_localhost_apiserver.rc != 0

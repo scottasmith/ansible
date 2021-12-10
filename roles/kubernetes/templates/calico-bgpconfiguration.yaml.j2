@@ -7,7 +7,7 @@ spec:
   nodeToNodeMeshEnabled: true
   asNumber: {{ kubernetes_global_bgp_asn }}
 
-{% for proxy in groups['kubernetesproxy'] %}
+{% for proxy in groups['k8s-proxy'] %}
 ---
 apiVersion: projectcalico.org/v3
 kind: BGPPeer
