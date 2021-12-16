@@ -21,7 +21,7 @@
   - k8s-control-plane
 
 # Setup rest of the masters
-- hosts: k8s_masters:!k8-master-1
+- hosts: k8s_control_plane:!k8-master-1
   become: true
   gather_facts: true
   roles:
@@ -34,13 +34,6 @@
   roles:
   - k8s-workers
 
-# Setup loadbalancers
-- hosts: k8s_lbs
-  become: true
-  gather_facts: true
-  roles:
-  - k8s-loadbalancers
-
 # Setup loadbalancers and services
 - hosts: k8-master-1
   become: true
@@ -48,3 +41,12 @@
   roles:
   - k8s-network
   - k8s-services
+
+# Setup loadbalancers and services
+- hosts: k8_lbs
+  become: true
+  gather_facts: true
+  tasks:
+  - name: Add haproxy node label
+    ansible.builtin.shell: kubectl label nodes "{{ inventory_hostname }}" node-role=haproxy-ingress
+    delegate_to: "{{ groups['k8s_control_plane'][0] }}"

@@ -16,7 +16,7 @@ oom_score = -999
 # Kubernetes runs best when we are using the same cgroup root
 # https://kubernetes.io/docs/setup/production-environment/container-runtimes/
 #
-# Temporarily disabled - https://github.com/kubernetes/kubernetes/issues/106464
+# Temporarily disabled as on Debian 11 - https://github.com/kubernetes/kubernetes/issues/106464
 #
 #[plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
 #  SystemdCgroup = true

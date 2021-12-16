@@ -1,3 +1,0 @@
----
-vrrp_interface: ens18
-vrrp_virtual_router_id: 51

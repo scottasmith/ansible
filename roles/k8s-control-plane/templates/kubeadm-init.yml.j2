@@ -8,33 +8,21 @@ bootstrapTokens:
   usages:
   - signing
   - authentication
-localAPIEndpoint:
-  advertiseAddress: {{ ansible_host }}
-  bindPort: {{ kubernetes_api_port }}
 nodeRegistration:
   criSocket: unix:///var/run/containerd/containerd.sock
 ---
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: ClusterConfiguration
-apiServer:
-  timeoutForControlPlane: 4m0s
-certificatesDir: /etc/kubernetes/pki
-clusterName: kubernetes
-controllerManager: {}
-dns:
-  type: CoreDNS
-etcd:
-  local:
-    dataDir: /var/lib/etcd
-imageRepository: k8s.gcr.io
-kubernetesVersion: v1.22.3
-controlPlaneEndpoint: {{ kubernetes_api_vip }}:{{ kubernetes_api_vip_port }}
+controlPlaneEndpoint: {{ k8s_control_plane_vip_address }}:{{ k8s_control_plane_vip_port }}
 networking:
   dnsDomain: cluster.local
-  podSubnet: {{ kubernetes_pod_subnet }}
+  podSubnet: {{ k8s_pod_subnet }}
   serviceSubnet: 10.96.0.0/12
 scheduler: {}
 ---
 apiVersion: kubelet.config.k8s.io/v1beta1
 kind: KubeletConfiguration
+serverTLSBootstrap: true
+# systemd temporarily disabled as on Debian 11 - https://github.com/kubernetes/kubernetes/issues/106464
+#
 cgroupDriver: cgroupfs

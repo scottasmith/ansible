@@ -1,18 +1,14 @@
 ---
-kubernetes_pkg_version: 1.22.4-00
-kubernetes_version: v1.22.4
+k8s_pkg_version: 1.23.1-00
+k8s_version: v1.23.1
 
-kubernetes_api_vip: "192.168.2.20"
-kubernetes_api_vip_cidr: "192.168.2.20/24"
-kubernetes_api_vip_port: 443
+k8s_control_plane_vip_address: "192.168.2.20"
+k8s_control_plane_vip_cidr: "24"
+k8s_control_plane_vip_port: 6443
 
-kubernetes_api_port: 6443
+k8s_pod_subnet: "10.244.0.0/16"
 
-kubernetes_pod_subnet: "10.244.0.0/16"
-
-kubernetes_calico_bgp_asn: 65000
-
-kubernetes_csr_resources: ["scottsmith.me.uk/*"]
+k8s_calico_bgp_asn: 65000
 
 kadalu_pools:
 - name: "pool1"

@@ -41,8 +41,8 @@
     - gnupg2
     - software-properties-common
     - python3-pip
-    - "kubelet={{ kubernetes_pkg_version }}"
-    - "kubeadm={{ kubernetes_pkg_version }}"
+    - "kubelet={{ k8s_pkg_version }}"
+    - "kubeadm={{ k8s_pkg_version }}"
     state: present
     update_cache: true
 

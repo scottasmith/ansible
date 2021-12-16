@@ -5,9 +5,10 @@
     dest: /tmp/kubeadm-init.yml
 
 - name: Initialize kubernetes master
-  ansible.builtin.shell: kubeadm init --config /tmp/kubeadm-init.yml  >> cluster_init.log
+  ansible.builtin.shell: kubeadm init --config /tmp/kubeadm-init.yml --upload-certs >> cluster_init.log
   args:
     chdir: "/home/{{ ansible_user }}"
+    creates: "/home/{{ ansible_user }}/cluster_init.log"
 
 - name: Setup ansible .kube directory
   ansible.builtin.file:

@@ -1,0 +1,12 @@
+---
+- name: Create kubernetes config dir 
+  ansible.builtin.file:
+    path: /etc/kubernetes/manifests
+    state: directory
+    mode: '0755'
+
+- name: Create kube-vip config
+  ansible.builtin.template:
+    src: kube-vip.yml.j2
+    dest: /etc/kubernetes/manifests/kube-vip.yml
+  

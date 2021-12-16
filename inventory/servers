@@ -3,20 +3,14 @@ ansible_python_interpreter=/usr/bin/python3
 ansible_ssh_private_key_file = /home/ansible/.ansible/ansible-id_rsa
 ansible_user = ansible
 
-# [control]
-# ansible ansible_connection=local
-
 [k8s_lbs]
-# 192.168.2.10 - VRRP IP
-proxy-1 ansible_host=192.168.2.11 vrrp_priority=101 vrrp_state=MASTER
-proxy-2 ansible_host=192.168.2.12 vrrp_priority=100 vrrp_state=BACKUP
+proxy-1 ansible_host=192.168.2.10
 
-[k8s_masters]
-# 192.168.2.20 - VRRP IP
+[k8s_control_plane]
 # first k8-master in this list is considered primary on new cluster
-k8-master-1 ansible_host=192.168.2.21 vrrp_priority=101 vrrp_state=MASTER
-k8-master-2 ansible_host=192.168.2.22 vrrp_priority=100 vrrp_state=BACKUP
-k8-master-3 ansible_host=192.168.2.23 vrrp_priority=100 vrrp_state=BACKUP
+k8-master-1 ansible_host=192.168.2.21 k8s_control_plane_vip_interface=ens18
+k8-master-2 ansible_host=192.168.2.22 k8s_control_plane_vip_interface=ens18
+k8-master-3 ansible_host=192.168.2.23 k8s_control_plane_vip_interface=ens18
 
 [k8s_workers]
 k8-worker-1 ansible_host=192.168.2.30 kadalu_pool1_device=/dev/sdb
@@ -24,6 +18,6 @@ k8-worker-2 ansible_host=192.168.2.31 kadalu_pool1_device=/dev/sdb
 k8-worker-3 ansible_host=192.168.2.32 kadalu_pool1_device=/dev/sdb
 
 [k8s_cluster:children]
-k8s_masters
+k8s_control_plane
 k8s_workers
 k8s_lbs

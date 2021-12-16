@@ -2,7 +2,8 @@
 - name: Generate join token
   ansible.builtin.shell: kubeadm token create --print-join-command
   register: kubeadm_join_cmd_raw
-  delegate_to: "{{ groups['k8s_masters'][0] }}"
+  delegate_to: "{{ groups['k8s_control_plane'][0] }}"
+  changed_when: false
 
 - name: set k8 join command as fact
   ansible.builtin.set_fact:
@@ -14,4 +15,7 @@
     msg: "{{ kubeadm_join_cmd }}"
 
 - name: Execute join command
-  ansible.builtin.shell: "{{ kubeadm_join_cmd }}"
+  ansible.builtin.shell: "{{ kubeadm_join_cmd }} >> cluster_init.log"
+  args:
+    chdir: "/home/{{ ansible_user }}"
+    creates: "/home/{{ ansible_user }}/cluster_init.log"

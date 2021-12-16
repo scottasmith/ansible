@@ -12,7 +12,7 @@ spec:
     # Note: The ipPools section cannot be modified post-install.
     ipPools:
     - blockSize: 26
-      cidr: {{ kubernetes_pod_subnet }}
+      cidr: {{ k8s_pod_subnet }}
       encapsulation: IPIP
       natOutgoing: Enabled
       nodeSelector: all()

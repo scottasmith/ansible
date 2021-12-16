@@ -1,8 +1,0 @@
-- name: Install cert-manager
-  community.kubernetes.k8s:
-    state: present
-    definition: "{{ lookup('file', 'cert-manager.yaml') | from_yaml }}"
-    validate:
-      fail_on_error: no
-      strict: yes
-  with_items:
